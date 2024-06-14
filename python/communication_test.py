@@ -1,4 +1,4 @@
-from python.communication import SmsSender, MailSender
+from communication import SmsSender, MailSender
 
 
 class TestableSmsSender(SmsSender):

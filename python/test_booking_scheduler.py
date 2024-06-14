@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 import unittest
 
-from python.booking_scheduler import BookingScheduler
-from python.communication_test import TestableSmsSender, TestableMailSender
-from python.schedule import Customer, Schedule
+from booking_scheduler import BookingScheduler
+from communication_test import TestableSmsSender, TestableMailSender
+from schedule import Customer, Schedule
 
 CUSTOMER_WITH_MAIL = Customer("Fake Name", "010-1234-5678", "test@test.com")
 
@@ -13,6 +13,24 @@ CUSTOMER = Customer("Fake time", "010-1234-5678")
 
 CAPACITY_PER_HOUR = 3
 UNDER_CAPACITY = 1
+
+
+class SundayBookingScheduler(BookingScheduler):
+    def __init__(self, capacity_per_hour):
+        super().__init__(capacity_per_hour)
+
+    def get_now(self):
+        return datetime.strptime("2021/03/28 17:00", "%Y/%m/%d %H:%M")
+
+
+class MondayBookingScheduler(BookingScheduler):
+
+    def __init__(self, capacity_per_hour):
+        super().__init__(capacity_per_hour)
+
+    def get_now(self):
+        return datetime.strptime("2021/06/03 17:00", "%Y/%m/%d %H:%M")
+
 
 class BookingSchedulerTest(unittest.TestCase):
 
@@ -54,7 +72,7 @@ class BookingSchedulerTest(unittest.TestCase):
         new_schedule = Schedule(different_hour, UNDER_CAPACITY, CUSTOMER)
         self.booking_scheduler.add_schedule(new_schedule)
 
-        self.assertTrue(self.booking_scheduler.has_schedule(schedule))
+        self.assertTrue(self.booking_scheduler.has_schedule(new_schedule))
 
     def test_예약완료시_SMS는_무조건_발송(self):
         schedule = Schedule(ON_THE_HOUR, UNDER_CAPACITY, CUSTOMER)
@@ -78,10 +96,20 @@ class BookingSchedulerTest(unittest.TestCase):
         self.assertEqual(self.testable_mail_sender.get_count_send_mail_is_called(), 1)
 
     def test_현재날짜가_일요일인_경우_예약불가_예외처리(self):
-        pass
+        self.booking_scheduler = SundayBookingScheduler(CAPACITY_PER_HOUR)
+
+        with self.assertRaises(ValueError):
+            new_schedule = Schedule(ON_THE_HOUR, UNDER_CAPACITY, CUSTOMER_WITH_MAIL)
+            self.booking_scheduler.add_schedule(new_schedule)
+            self.fail()
 
     def test_현재날짜가_일요일이_아닌경우_예약가능(self):
-        pass
+        self.booking_scheduler = MondayBookingScheduler(CAPACITY_PER_HOUR)
+
+        new_schedule = Schedule(ON_THE_HOUR, UNDER_CAPACITY, CUSTOMER_WITH_MAIL)
+        self.booking_scheduler.add_schedule(new_schedule)
+
+        self.assertTrue(self.booking_scheduler.has_schedule(new_schedule))
 
 
 if __name__ == '__main__':
